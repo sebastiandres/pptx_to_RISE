@@ -1,5 +1,6 @@
 # Ressources
-# 1. https://stackoverflow.com/questions/32908639/open-pil-image-from-byte-file
+# 1. https://python-pptx.readthedocs.io/en/latest/
+# 2. https://stackoverflow.com/questions/32908639/open-pil-image-from-byte-file
 
 import sys
 import os
@@ -48,8 +49,11 @@ def save(notebook_dict, ipynb_filepath):
         json.dump(notebook_dict, fp)
     return
 
-def create_cell(cell_type="markdown", content="This is a markdown and main", slide_type="slide"):
+def create_cell(cell_type="markdown", 
+                content="This is markdown!", 
+                slide_type="slide"):
     """
+    This function creates a cell
     """
     cell = {
                 "cell_type": cell_type,
@@ -59,8 +63,27 @@ def create_cell(cell_type="markdown", content="This is a markdown and main", sli
                     }
                             },
                 "source": content
-            }  
+            }
+    if cell_type=="code":
+        cell["execution_count"] = None
+        cell["outputs"] = []
     return cell    
+
+def config_cell():
+    code = """#!/usr/bin/env python3
+from traitlets.config.manager import BaseJSONConfigManager
+from pathlib import Path
+path = Path.home() / ".jupyter" / "nbconfig"
+cm = BaseJSONConfigManager(config_dir=str(path))
+cm.update(
+    "rise",
+    {
+        "theme": "none", # sky, ...
+        "transition": "none", #
+    }
+)"""
+    return create_cell(cell_type="code", 
+                       content=code, slide_type="-")
 
 def create_image_markdown(shape, output_folder):
     """
@@ -71,7 +94,6 @@ def create_image_markdown(shape, output_folder):
     key = datetime.utcnow().strftime('%Y_%m_%d_%H_%M_%S_%f')
     image_filename = "{}/{}.{}".format("images", key, content_type)
     image_filepath = "{}/{}".format(output_folder, image_filename)
-    print(image_filepath)
     save_image(image_filepath, blob)
     my_text = '\n !["{}"]({}) \n'.format("Image", image_filename) # Not filepath, just the name because same folder
     return my_text
@@ -83,7 +105,6 @@ def get_markdown(shape, output_folder, preppend=""):
         my_text =  "".join([preppend+_+"\n" for _ in shape.text.split("\n")])
     elif "image" in dir(shape):
         my_text = create_image_markdown(shape, output_folder)
-        print("*"+my_text+"*")
     else:
         my_text = ""
     return my_text
@@ -114,11 +135,10 @@ def ppt2rise(input_filepath, output_filepath):
     prs = Presentation(input_filepath)
 
     # Initialize the cell list
-    cells = []
+    cells = [config_cell(), ]
 
     # Iterate through slides
     for i, slide in enumerate(prs.slides):
-        print(i, str(slide), "shapes", len(slide.shapes))
         if len(slide.shapes)==3:
             # Show in columns
             # Title cell
