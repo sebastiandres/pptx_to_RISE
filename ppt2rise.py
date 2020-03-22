@@ -1,14 +1,19 @@
 # Ressources
 # 1. https://python-pptx.readthedocs.io/en/latest/
 # 2. https://stackoverflow.com/questions/32908639/open-pil-image-from-byte-file
+# 2. Shapes: https://python-pptx.readthedocs.io/en/latest/user/autoshapes.html
 
 import sys
 import os
-from pptx import Presentation
+import io
 import json
 from PIL import Image
-import io
 from datetime import datetime
+from pptx import Presentation
+from pptx.util import Inches
+
+# SOME PARAMETERS
+DEBUG = False
 
 def create_notebook(cells):
     """
@@ -83,7 +88,7 @@ cm.update(
     }
 )"""
     return create_cell(cell_type="code", 
-                       content=code, slide_type="-")
+                       content=code, slide_type="skip")
 
 def create_image_markdown(shape, output_folder):
     """
@@ -123,7 +128,14 @@ def get_type(shape):
     else:
         return "unknown"
 
-def ppt2rise(input_filepath, output_filepath):
+def is_left_column(shape, slide_width):
+    return shape.left.inches<0.5*slide_width
+
+def is_right_column(shape, slide_width):
+    return shape.left.inches>0.5*slide_width
+
+def ppt2rise(input_filepath, output_filepath, debug=DEBUG):
+
     # Check sanity of arguments
     output_folder = os.path.dirname(output_filepath)
     mkdir(output_folder)
@@ -133,6 +145,11 @@ def ppt2rise(input_filepath, output_filepath):
 
     # load a presentation
     prs = Presentation(input_filepath)
+
+    # Get the size
+    slide_height = prs.slide_height/Inches(1)
+    slide_width = prs.slide_width/Inches(1)
+    if debug: print("height , width = {}, {}".format(slide_height, slide_width))
 
     # Initialize the cell list
     cells = [config_cell(), ]
@@ -146,8 +163,12 @@ def ppt2rise(input_filepath, output_filepath):
             my_cell = create_cell(cell_type="markdown", content=title_content, slide_type="slide")
             cells.append(my_cell)
             # left_content
-            left_markdown = get_markdown(slide.shapes[1], output_folder)
-            right_markdown = get_markdown(slide.shapes[2], output_folder)
+            if is_left_column(slide.shapes[1], slide_width) and is_right_column(slide.shapes[2], slide_width):
+                left_index, right_index = 1, 2
+            else:
+                left_index, right_index = 2, 1
+            left_markdown = get_markdown(slide.shapes[left_index], output_folder)
+            right_markdown = get_markdown(slide.shapes[right_index], output_folder)
             my_text = ""
             my_text += '''<div style="float: left; width: 49%;">\n{}\n</div>'''.format(left_markdown)
             my_text += '''<div style="float: right; width: 49%;">\n{}\n</div>'''.format(right_markdown)
@@ -155,6 +176,12 @@ def ppt2rise(input_filepath, output_filepath):
             cells.append(my_cell)
         else:
             for j, shape in enumerate(slide.shapes):
+                left, width = shape.left.inches, shape.width.inches
+                if debug: print("\t", i, j, "left, right, width = {}, {}, {}".format(left, left+width, width))
+                top, height = shape.top.inches, shape.height.inches
+                if debug: print("\t", i, j, "top, bottom, height = {}, {}, {}".format(top, top+height, height))
+                if debug: print("width < slide_width? {} < {} ? {}".format(width, slide_width, width<0.5*slide_width))
+
                 # Detect if new slide
                 slide_type="slide" if j==0 else "-"
                 preppend = "## " if (j==0 and get_type(shape)=="text") else ""
