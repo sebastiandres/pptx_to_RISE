@@ -2,9 +2,14 @@
 Tool to convert slides from pptx format to jupyter notebook (ipynb) slides with RISE extension.
 
 ![Original slide in pptx format](readme_images/pptx.gif)
+
 **Original slide in pptx format**
 
+<br>
+
+<br>
 ![Converted slides to jupyter notebook](readme_images/ipynb.gif)
+
 **Converted slides to jupyter notebook**
 
 # Usage
