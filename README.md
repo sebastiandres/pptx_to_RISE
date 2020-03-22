@@ -8,6 +8,7 @@ Tool to convert slides from pptx format to jupyter notebook (ipynb) slides with 
 <br>
 
 <br>
+
 ![Converted slides to jupyter notebook](readme_images/ipynb.gif)
 
 **Converted slides to jupyter notebook**
